@@ -1,9 +1,10 @@
-#include "flags.h"
-
 #ifndef FILES_H
 #define FILES_H
 
-char** find_file(int argc, char *argv[]) {
+#include "flags.h"
+#include "templates.h"
+
+char** find_file(int argc, char *argv[], int s) {
     char **paths = NULL;
     int pathSize = 0;
     for (int i = 1; i < argc; ++i) {
@@ -20,11 +21,6 @@ char** find_file(int argc, char *argv[]) {
     }
     ++pathSize;
     paths = (char**)realloc(paths, sizeof(char*) * pathSize);
-
-    if (!check_exist_file(paths)) {
-        paths = NULL;
-    }
-
     return paths;
 }
 
