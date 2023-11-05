@@ -80,7 +80,7 @@ int check_string(char *filename, char *str, regex_t **templates, struct flags *f
 
 void parsing_file(char *filename, FILE *file, regex_t **templates, struct flags *flags, int count_files, int *detect_count) {
     char *str = NULL;
-    str = get_string(file);
+    str = get_string(file, 1);
     int count_str = 1, mozno = 1;
     while ((str != NULL) && mozno) {
         mozno = check_string(filename, str, templates, flags, detect_count, count_str, count_files);
@@ -88,7 +88,7 @@ void parsing_file(char *filename, FILE *file, regex_t **templates, struct flags 
             printf("-\n");
         }
         free(str);
-        str = get_string(file);
+        str = get_string(file, 1);
         ++count_str;
     }
     free(str);
@@ -115,9 +115,6 @@ void find_patterns_in_file(struct findStruct *grepStruct) {
             ++no_such_file_count;
         }
         fclose(file);
-    }
-    if (grepStruct->flags->c) {
-        printf("%d", detect_count);
     }
     if (no_such_file != NULL) {
         for (int i = 0; i < no_such_file_count; ++i) {

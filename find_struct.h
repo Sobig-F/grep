@@ -26,15 +26,13 @@ void clean_findStruct(struct findStruct *findStruct) {
         }
         free(findStruct->files);
     }
+    free(findStruct);
 }
 
 struct findStruct* Create_find_struct(int argc, char * argv[]) {
     struct findStruct *findStruct = (struct findStruct*)malloc(sizeof(struct findStruct));
     findStruct->flags = flagging(argc, argv);
     findStruct->files = find_file(argc, argv, findStruct->flags->e || findStruct->flags->f);
-    // for (int i = 0; *(findStruct->files + i) != NULL; ++i) {
-    //     printf("%s\n", *(findStruct->files + i));
-    // }
     findStruct->templates = find_template(argc, argv, findStruct->flags);
     if (findStruct->flags->f && (findStruct->templates == NULL)) {
         clean_findStruct(findStruct);
