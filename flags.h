@@ -6,7 +6,7 @@
 #include <stdio.h>
 
 struct flags {
-    int i, v, c, l, n, h, s, o, f;
+    int i, v, c, l, n, h, s, o, f, e;
 };
 
 int find_flag(char **flags, char flag, int argc) {
@@ -54,6 +54,7 @@ struct flags* flagging(int argc, char *argv[]) {
         flags->s = find_flag(argv, 's', argc);
         flags->o = find_flag(argv, 'o', argc);
         flags->f = find_flag(argv, 'f', argc);
+        flags->e = find_flag(argv, 'e', argc);
     }
     return flags;
 }

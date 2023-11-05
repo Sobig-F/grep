@@ -13,48 +13,63 @@ void clean_mass(char **arr) {
     free(arr);
 }
 
-char** association_templates(FILE *file, char **templates, int *count) {
-    int count_templates = 0, k = 0;
-    char buffer[2];
-    if (templates == NULL) {
-        templates = (char**)malloc(sizeof(char*));
-    } else {
-        for (int i = 0; *(templates + i) != NULL; ++i) {
-            ++count_templates;
+void copy(char *first, char *second) {
+    for (int i = 0; i < (int)strlen(second); ++i) {
+        first[i] = second[i];
+    }
+}
+
+regex_t** convert_to_regex_t(char **templates, int i_flag) {
+    regex_t **patterns = NULL;
+    patterns = (regex_t**)malloc(sizeof(regex_t*));
+    for (int i = 0; *(templates + i) != NULL; ++i) {
+        patterns = (regex_t**)realloc(patterns, sizeof(regex_t*) * (i + 1));
+        patterns[i] = (regex_t*)malloc(sizeof(regex_t));
+        if (i_flag) {
+            regcomp(patterns[i], *(templates + i), REG_ICASE);
+        } else {
+            regcomp(patterns[i], *(templates + i), REG_EXTENDED);
         }
     }
+    return patterns;
+}
+
+char** association_templates(FILE *file, char **templates, int *count) {
+    int k = 0;
+    char buffer[2];
     while (fgets(buffer, 2, file)) {
         if (k == 0) {
-            ++count_templates;
-            templates = (char**)realloc(templates, sizeof(char*) * count_templates);
+            ++*count;
+            if (templates == NULL) {
+                templates = (char**)malloc(sizeof(char*));
+            } else {
+                templates = (char**)realloc(templates, sizeof(char*) * *count);
+            }
         }
         if (buffer[0] != '\n') {
             ++k;
-            if (templates[count_templates - 1] == NULL) {
-                templates[count_templates - 1] = (char*)malloc(sizeof(char));
+            if (templates[*count - 1] == NULL) {
+                templates[*count - 1] = (char*)malloc(sizeof(char));
             } else {
-                templates[count_templates - 1] = (char*)realloc(templates[count_templates - 1], sizeof(char) * k);
+                templates[*count - 1] = (char*)realloc(templates[*count - 1], sizeof(char) * k);
             }
-            templates[count_templates - 1][k - 1] = buffer[0];
+            templates[*count - 1][k - 1] = buffer[0];
         } else {
             k = 0;
         }
     }
-    *count = count_templates;
     return templates;
 }
 
 int check_exist_file(char **paths) {
     FILE *file = NULL;
     int k = 0, error = 1;
-    while ((*(paths + k) != NULL) && error) {
-        file = fopen(*(paths + k), "r");
+    for (int i = 0; error && (*(paths + i) != NULL); ++i) {
+        file = fopen(*(paths + i), "r");
         if (file == NULL) {
-            printf("grep: %s: No such file or directory", *(paths + k));
-            --error;
+            printf("grep: %s: No such file or directory", *(paths + i));
+            error = 0;
         }
-        fclose(file);
-        ++k;
     }
     return error;
 }
@@ -69,84 +84,58 @@ char **run_regulars_file(char **paths_regulars, char **templates, int *count) {
             }
             fclose(file);
         }
-    } else {
+    } else if (templates != NULL){
         clean_mass(templates);
-        templates = NULL;
     }
     return templates;
 }
 
-void copy(char *first, char *second) {
-    for (int i = 0; i < (int)strlen(second); ++i) {
-        first[i] = second[i];
-    }
-}
-
-char** find_path_regulars(char **argv, int argc) {
-    char **paths = NULL;
-    int pathSize = 0;
-    for (int i = 1; i < argc; ++i) {
-        if ((strlen(argv[i]) == 2) && (argv[i][1] == 'f') && (argv[i][0] == '-')) {
-            if (paths == NULL) {
-                ++pathSize;
-                paths = (char**)malloc(sizeof(char*));
-            } else {
-                ++pathSize;
-                paths = (char**)realloc(paths, sizeof(char*) * pathSize);
+char **find_feflags_argument(char **argv, char **array, char flag) {
+    int count = 0;
+    for (int i = 1; *(argv + i) != NULL; ++i) {
+        if ((strlen(argv[i]) == 2) && (argv[i][0] == '-') && (argv[i][1] == flag)) {
+            ++count;
+            if (array == NULL) {
+                array = (char**)malloc(sizeof(char*));
             }
-            paths[pathSize - 1] = (char*)malloc(sizeof(char) * (int)strlen(argv[i + 1]));
-            copy(paths[pathSize - 1], argv[i + 1]);
+            array = (char**)realloc(array, sizeof(char*) * count);
+            array[count - 1] = (char*)malloc(sizeof(char) * (int)strlen(argv[i + 1]));
+            copy(array[count - 1], argv[i + 1]);
         }
     }
-    ++pathSize;
-    paths = (char**)realloc(paths, sizeof(char*) * pathSize);
-    return paths;
+
+    return array;
+}
+
+char** find_first_temp(char **argv, char **templates) {
+    for (int i = 1; templates == NULL; ++i) {
+        if (argv[i][0] != '-') {
+            templates = (char**)malloc(sizeof(char*));
+            templates[0] = (char*)malloc(sizeof(char) * strlen(argv[i]));
+            copy(templates[0], argv[i]);
+        }
+    }
+    return templates;
 }
 
 regex_t** find_template(int argc, char **argv, struct flags *flags) {
     regex_t **patterns = NULL;
     int count = 0, i = 1;
     char **paths_regulars = NULL, **templates = NULL;
-    
-    
-    while (i < argc - 1) {
-        if ((strlen(argv[i]) == 2) && (argv[i][1] == 'e') && (argv[i][0] == '-')) {
-            ++count;
-            if (templates == NULL) {
-                templates = (char**)malloc(sizeof(char*));
-            } else {
-                templates = (char**)realloc(templates, sizeof(char*) * count);
-            }
-            templates[count - 1] = (char*)malloc(sizeof(char) * (int)strlen(argv[i + 1]));
-            copy(templates[count - 1], argv[i + 1]);
-            ++i;
-        }
-        ++i;
+
+    if (!flags->e && !flags->f) {
+        templates = find_first_temp(argv, templates);
+    } else if (flags->e) {
+        templates = find_feflags_argument(argv, templates, 'e');
     }
-
-
-    paths_regulars = find_path_regulars(argv, argc);
-    if (paths_regulars != NULL) {
+    if (flags->f) {
+        paths_regulars = find_feflags_argument(argv, paths_regulars, 'f');
         templates = run_regulars_file(paths_regulars, templates, &count);
-    } else {
-        templates = (char**)realloc(templates, sizeof(char*) * (count + 1));
+        clean_mass(paths_regulars);
     }
-    for (int i = 0; *(paths_regulars + i); ++i) {
-        free(*(paths_regulars + i));
-    }
-    free(paths_regulars);
     if (templates != NULL) {
-        patterns = (regex_t**)malloc(sizeof(regex_t*));
-        for (int i = 0; *(templates + i) != NULL; ++i) {
-            patterns = (regex_t**)realloc(patterns, sizeof(regex_t*) * (i + 1));
-            patterns[i] = (regex_t*)malloc(sizeof(regex_t));
-            if (flags->i) {
-                regcomp(patterns[i], *(templates + i), REG_ICASE);
-            } else {
-                regcomp(patterns[i], *(templates + i), REG_EXTENDED);
-            }
-        }
-        free(templates);
+        patterns = convert_to_regex_t(templates, flags->i);
+        clean_mass(templates);
     }
     return patterns;
 }
