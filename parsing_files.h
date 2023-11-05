@@ -2,6 +2,12 @@
 #define PARSING_FILES
 
 #include "restring.h"
+#include <regex.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "flags.h"
+#include "find_struct.h"
 
 void print_cut_str(char *str, regex_t *pattern) {
     regmatch_t *pm;

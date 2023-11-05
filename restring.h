@@ -1,6 +1,8 @@
 #ifndef RESTRING_H
 #define RESTRING_H
 
+#include <stdlib.h>
+
 char* get_string(FILE *file) {
     char *str = NULL, buff[2];
     int i = 1;

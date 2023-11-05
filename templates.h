@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <regex.h>
+#include "flags.h"
 
 void clean_mass(char **arr) {
     for (int i = 0; arr[i] != NULL; ++i) {
