@@ -4,25 +4,48 @@
 #include "flags.h"
 #include "templates.h"
 
+char** append_path(char **paths, int *pathsSize, char *new_path) {
+    if (*pathsSize == 0) {
+        paths = (char**)malloc(sizeof(char*));
+    } else {
+        paths = (char**)realloc(paths, sizeof(char*) * *pathsSize);
+    }
+    paths[*pathsSize] = (char*)malloc(sizeof(char) * (int)strlen(new_path));
+    copy(paths[*pathsSize], new_path);
+    ++*pathsSize;
+
+    return paths;
+}
+
 char** find_file(int argc, char *argv[], int e) {
     char **paths = NULL;
-    int pathSize = 0, allowed = 0;
+    int pathSize = 0, allowed = 1, its_argument = 0;
+    FILE *file = NULL;
+    if (e) {
+        allowed = 0;
+    }
     for (int i = 1; i < argc; ++i) {
-        if ((e || allowed) && (((argv[i - 1][1] != 'f') && (argv[i - 1][1] != 'e')) || (argv[i - 1][0] != '-')) && (argv[i][0] != '-')) {
-            ++pathSize;
-            if (paths == NULL) {
-                paths = (char**)malloc(sizeof(char*));
-            } else {
-                paths = (char**)realloc(paths, sizeof(char*) * pathSize);
+        file = fopen(argv[i], "r");
+        if ((argv[i - 1][0] == '-') && ((argv[i - 1][strlen(argv[i - 1]) - 1] == 'e') || (argv[i - 1][strlen(argv[i - 1]) - 1] == 'f'))) {
+            its_argument = 1;
+        }
+        for (int j = 1; (j + 1 < strlen(argv[i - 1])) && its_argument; ++j) {
+            if ((argv[i - 1][j] == 'f') || (argv[i - 1][j] == 'e')) {
+                its_argument = 0;
             }
-            paths[pathSize - 1] = (char*)malloc(sizeof(char) * (int)strlen(argv[i]));
-            copy(paths[pathSize - 1], argv[i]);
-        } else if (!allowed && !e) {
-            allowed = !allowed;
+        }
+        if ((file != NULL) && !its_argument) {
+            if (allowed) {
+                paths = append_path(paths, &pathSize, argv[i]);
+            } else {
+                allowed = 1;
+            }
         }
     }
-    ++pathSize;
-    paths = (char**)realloc(paths, sizeof(char*) * pathSize);
+    paths = (char**)realloc(paths, sizeof(char*) * (pathSize + 1));
+    // for (int i = 0; *(paths + i) != NULL; ++i) {
+    //     printf("%s\n", *(paths + i));
+    // }
     return paths;
 }
 

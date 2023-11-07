@@ -9,52 +9,61 @@ struct flags {
     int i, v, c, l, n, h, s, o, f, e;
 };
 
-int find_flag(char **flags, char flag, int argc) {
-    int found = 0;
-    for (int i = 1; (i < argc) && (!found); ++i) {
-        if (flags[i][0] != '-') {
-            continue;
-        }
-        for (int j = 1; j < (int)strlen(flags[i]); ++j) {
-            if (flags[i][j] == flag) {
-                found = 1;
+struct flags* find_flags(struct flags *flags, char *argv[], int *valid) {
+    int feflag;
+    for (int i = 1; *(argv + i) != NULL; ++i) {
+        feflag = 0;
+        for (int j = 1; !feflag && (j < strlen(argv[i])) && (argv[i][0] == '-'); ++j) {
+            if (argv[i][j] == 'i') {
+                flags->i = 1;
+            } else if (argv[i][j] == 'v') {
+                flags->v = 1;
+            } else if (argv[i][j] == 'c') {
+                flags->c = 1;
+            } else if (argv[i][j] == 'l') {
+                flags->l = 1;
+            } else if (argv[i][j] == 'n') {
+                flags->n = 1;
+            } else if (argv[i][j] == 'h') {
+                flags->h = 1;
+            } else if (argv[i][j] == 's') {
+                flags->s = 1;
+            } else if (argv[i][j] == 'o') {
+                flags->o = 1;
+            }else if (argv[i][j] == 'f') {
+                feflag = 1;
+                flags->f = 1;
+            }else if (argv[i][j] == 'e') {
+                feflag = 1;
+                flags->e = 1;
+            } else if (!feflag) {
+                printf("grep: invalid option -- %c\n", argv[i][j]);
+                *valid = 0;
             }
         }
     }
-    return found;
-}
-
-int check_flags_validate(char **flags, int flagsSize) {
-    int validate = 1, len;
-    for (int i = 1; (i < flagsSize - 1) && validate; ++i) {
-        len = strlen(*(flags + i));
-        for (int j = 1; (j < len) && validate; ++j) {
-            if ((flags[i][0] == '-') && (flags[i][j] != 'i') && (flags[i][j] != 'v') && (flags[i][j] != 'c') && (flags[i][j] != 'l') && (flags[i][j] != 'n') && (flags[i][j] != 'h') && (flags[i][j] != 's') && (flags[i][j] != 'o')) {
-                validate = 0;
-            }
-            if (((flags[i][j] == 'e') && (len == 2)) || ((flags[i][j] == 'f') && (len == 2)) || (flags[i][j] == '.')) {
-                validate = 1;
-            }
+    if (flags != NULL) {
+        if (flags->l) {
+            flags->h = 0;
+            flags->o = 0;
+        }
+        if (flags->c) {
+            flags->n = 0;
+            flags->h = 0;
+            flags->o = 0;
         }
     }
-    return validate;
-
+    return flags;
 }
 
 struct flags* flagging(int argc, char *argv[]) {
     struct flags *flags = NULL;
-    if (check_flags_validate(argv, argc)) {
-        flags = (struct flags*)malloc(sizeof(struct flags));
-        flags->i = find_flag(argv, 'i', argc);
-        flags->v = find_flag(argv, 'v', argc);
-        flags->c = find_flag(argv, 'c', argc);
-        flags->l = find_flag(argv, 'l', argc);
-        flags->n = find_flag(argv, 'n', argc);
-        flags->h = find_flag(argv, 'h', argc);
-        flags->s = find_flag(argv, 's', argc);
-        flags->o = find_flag(argv, 'o', argc);
-        flags->f = find_flag(argv, 'f', argc);
-        flags->e = find_flag(argv, 'e', argc);
+    int valid = 1;
+    flags = (struct flags*)malloc(sizeof(struct flags));
+    flags = find_flags(flags, argv, &valid);
+    if (!valid) {
+        free(flags);
+        flags = NULL;
     }
     return flags;
 }

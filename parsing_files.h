@@ -38,9 +38,9 @@ void print_cut_str(char *str, regex_t *pattern) {
 int check_string(char *filename, char *str, regex_t **templates, struct flags *flags, int *detect_string, int count_str, int count_files) {
     int detect;
     regmatch_t *pm;
-    int print_str = 2;
+    int print_str = 1;
 
-    for (int i = 0; (print_str > 1) && (*(templates + i) != NULL); ++i) {
+    for (int i = 0; print_str && (*(templates + i) != NULL); ++i) {
         detect = !regexec(*(templates + i), str, 0, pm, 0);
         if (flags->v) {
             detect = !detect;
@@ -48,9 +48,8 @@ int check_string(char *filename, char *str, regex_t **templates, struct flags *f
         if (detect && print_str && flags->c) {
             *detect_string += 1;
             detect = 0;
-            print_str = 1;
         }
-        if (print_str && detect && (flags->l || ((count_files > 1) && !flags->h))) {
+        if (detect && (flags->l || ((count_files > 1) && !flags->h))) {
             printf("%s", filename);
             if (!flags->l) {
                 printf(":");
@@ -68,11 +67,6 @@ int check_string(char *filename, char *str, regex_t **templates, struct flags *f
                 print_cut_str(str, *(templates + i));
             }
         }
-        if (detect && !flags->o) {
-            print_str = 1;
-        } else if (flags->o && !flags->l) {
-            print_str = 2;
-        }
     }
 
     return print_str;
@@ -84,9 +78,9 @@ void parsing_file(char *filename, FILE *file, regex_t **templates, struct flags 
     int count_str = 1, mozno = 1;
     while ((str != NULL) && mozno) {
         mozno = check_string(filename, str, templates, flags, detect_count, count_str, count_files);
-        if (!flags->o && (*(str + strlen(str) - 1) != '\n')) {
-            printf("-\n");
-        }
+        // if (!flags->o && (*(str + strlen(str) - 1) != '\n')) {
+        //     printf("\n");
+        // }
         free(str);
         str = get_string(file, 1);
         ++count_str;
@@ -113,6 +107,10 @@ void find_patterns_in_file(struct findStruct *grepStruct) {
             }
             no_such_file[no_such_file_count] = *(grepStruct->files + i);
             ++no_such_file_count;
+        }
+        if (grepStruct->flags->c) {
+            printf("%d\n", detect_count);
+            detect_count = 0;
         }
         fclose(file);
     }
