@@ -10,7 +10,7 @@
 #include "find_struct.h"
 
 void print_cut_str(char *str, regex_t *pattern) {
-    regmatch_t *pm;
+    regmatch_t *pm = NULL;
     char *start_str = (char*)malloc(sizeof(char));
     char *fin_str = (char*)malloc(sizeof(char));
     start_str[0] = *str;
@@ -35,90 +35,88 @@ void print_cut_str(char *str, regex_t *pattern) {
     printf("%s\n", fin_str);
 }
 
-int check_string(char *filename, char *str, regex_t **templates, struct flags *flags, int *detect_string, int count_str, int count_files) {
+int check_string(char *filename, char *str, regex_t **templates, struct flags *flags, int *detect_string, int count_str) {
     int detect;
-    regmatch_t *pm;
-    int print_str = 1;
+    regmatch_t *pm = NULL;
 
-    for (int i = 0; print_str && (*(templates + i) != NULL); ++i) {
+    for (int i = 0; (*(templates + i) != NULL); ++i) {
+        // printf("%d\n", i);
         detect = !regexec(*(templates + i), str, 0, pm, 0);
         if (flags->v) {
             detect = !detect;
         }
-        if (detect && print_str && flags->c) {
+        if (detect) {
             *detect_string += 1;
-            detect = 0;
         }
-        if (detect && (flags->l || ((count_files > 1) && !flags->h))) {
-            printf("%s", filename);
-            if (!flags->l) {
-                printf(":");
-            } else {
-                print_str = 0;
-            }
+        if (detect && !flags->h && (!flags->l || flags->c) && (!flags->c || (*detect_string < 2))) {
+            printf("%s:", filename);
         }
-        if (print_str && detect && flags->n && !flags->l) {
+        if (detect && flags->n) {
             printf("%d:", count_str);
         }
-        if (print_str && detect && !flags->l) {
-            if (!flags->o) {
-                printf("%s", str);
-            } else {
-                print_cut_str(str, *(templates + i));
-            }
+        if (detect && flags->o) {
+            print_cut_str(str, *(templates + i));
+        } else if (detect && !flags->c && !flags->l) {
+            printf("%s\n", str);
         }
     }
-
-    return print_str;
+    return detect;
 }
 
-void parsing_file(char *filename, FILE *file, regex_t **templates, struct flags *flags, int count_files, int *detect_count) {
+void parsing_file(char *filename, FILE *file, regex_t **templates, struct flags *flags, int *detect_count) {
     char *str = NULL;
-    str = get_string(file, 1);
-    int count_str = 1, mozno = 1;
-    while ((str != NULL) && mozno) {
-        mozno = check_string(filename, str, templates, flags, detect_count, count_str, count_files);
-        // if (!flags->o && (*(str + strlen(str) - 1) != '\n')) {
-        //     printf("\n");
-        // }
+    str = get_string(file, 0);
+    int count_str = 1, detect = 0;
+    while ((str != NULL) && (!detect || !flags->l)) {
+        detect = check_string(filename, str, templates, flags, detect_count, count_str);
         free(str);
-        str = get_string(file, 1);
+        str = get_string(file, 0);
         ++count_str;
+    }
+    if (flags->c) {
+        printf("%d\n", *detect_count);
+    }
+    if (*detect_count && flags->l) {
+        printf("%s\n", filename);
     }
     free(str);
 }
 
 void find_patterns_in_file(struct findStruct *grepStruct) {
     FILE *file;
-    char **no_such_file = NULL;
-    int count_files = 0, detect_count = 0, no_such_file_count = 0;
+    // char **no_such_file = NULL;
+    int count_files = 0, detect_count = 0;
     for (int i = 0; (count_files < 2) && (*(grepStruct->files + i) != NULL); ++i) {
         ++count_files;
     }
+    // for (int i = 0; *(grepStruct->files + i) != NULL; ++i) {
+    //     file = fopen(*(grepStruct->files + i), "r");
+    //     if (file == NULL) {
+    //         printf("grep: %s: No such file or directory\n", *(grepStruct->files + i));
+    //     }
+    // }
     for (int i = 0; *(grepStruct->files + i) != NULL; ++i) {
         file = fopen(*(grepStruct->files + i), "r");
         if (file != NULL) {
-            parsing_file(*(grepStruct->files + i), file, grepStruct->templates, grepStruct->flags, count_files, &detect_count);
-        } else if (!grepStruct->flags->s) {
-            if (no_such_file == NULL) {
-                no_such_file = (char**)malloc(sizeof(char*));
-            } else {
-                no_such_file = (char**)realloc(no_such_file, sizeof(char*) * no_such_file_count + 1);
-            }
-            no_such_file[no_such_file_count] = *(grepStruct->files + i);
-            ++no_such_file_count;
+            parsing_file(*(grepStruct->files + i), file, grepStruct->templates, grepStruct->flags, &detect_count);
         }
-        if (grepStruct->flags->c) {
-            printf("%d\n", detect_count);
-            detect_count = 0;
-        }
+        // } else if (!grepStruct->flags->s) {
+        //     if (no_such_file == NULL) {
+        //         no_such_file = (char**)malloc(sizeof(char*));
+        //     } else {
+        //         no_such_file = (char**)realloc(no_such_file, sizeof(char*) * no_such_file_count + 1);
+        //     }
+        //     no_such_file[no_such_file_count] = *(grepStruct->files + i);
+        //     ++no_such_file_count;
+        // }
+        detect_count = 0;
         fclose(file);
     }
-    if (no_such_file != NULL) {
-        for (int i = 0; i < no_such_file_count; ++i) {
-            printf("grep: %s: No such file or directory\n", *(no_such_file + i));
-        }
-    }
+    // if (no_such_file != NULL) {
+    //     for (int i = 0; i < no_such_file_count; ++i) {
+    //         printf("grep: %s: No such file or directory\n", *(no_such_file + i));
+    //     }
+    // }
 }
 
 #endif
