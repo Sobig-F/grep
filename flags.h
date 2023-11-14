@@ -37,21 +37,15 @@ struct flags* find_flags(struct flags *flags, char *argv[], int *valid) {
                 feflag = 1;
                 flags->e = 1;
             } else if (!feflag) {
-                printf("grep: invalid option -- %c\n", argv[i][j]);
+                fprintf(stderr, "grep: invalid option -- %c\n", argv[i][j]);
                 *valid = 0;
             }
         }
     }
-    // if (flags->v > 1) {
-    //     flags->v = flags->v % 2;
-    // }
     if (flags != NULL) {
         if (flags->l) {
-            // flags->h = 0;
             flags->o = 0;
             flags->n = 0;
-            // flags->v = 0;
-            
         }
         if (flags->c) {
             flags->n = 0;

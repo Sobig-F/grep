@@ -36,7 +36,8 @@ regex_t** convert_to_regex_t(char **templates, int i_flag) {
 }
 
 char** association_templates(FILE *file, char **templates, int *count) {
-    char *str = get_string(file, 0);
+    char *str = NULL;
+    str = get_string(file, 0, str);
     while (str != NULL) {
         if (!*count) {
             templates = (char**)malloc(sizeof(char*));
@@ -45,8 +46,9 @@ char** association_templates(FILE *file, char **templates, int *count) {
         templates = (char**)realloc(templates, sizeof(char*) * (*count));
         templates[*count - 1] = (char*)malloc(sizeof(char) * (int)strlen(str));
         copy(templates[*count - 1], str);
-        str = get_string(file, 0);
+        str = get_string(file, 0, str);
     }
+    free(str);
     templates = (char**)realloc(templates, sizeof(char*) * (*count + 1));
     return templates;
 }
@@ -57,7 +59,7 @@ int check_exist_file(char **paths) {
     for (int i = 0; error && (*(paths + i) != NULL); ++i) {
         file = fopen(*(paths + i), "r");
         if (file == NULL) {
-            printf("grep: %s: No such file or directory", *(paths + i));
+            fprintf(stderr, "grep: %s: No such file or directory", *(paths + i));
             error = 0;
         } else {
             fclose(file);
@@ -102,7 +104,7 @@ char** append_argument(char **array, int *count, char **argv, int indexj, int in
             copy(array[*count - 1], argv[indexi + 1]);
         } else {
             *count = 0;
-            printf("grep: option requires an argument -- %c\n", argv[indexi][indexj]);
+            fprintf(stderr, "grep: option requires an argument -- %c\n", argv[indexi][indexj]);
         }
     }
     return array;
@@ -160,14 +162,7 @@ regex_t** find_template(char **argv, struct flags *flags) {
         clean_mass(paths_regulars);
     }
     if (templates != NULL) {
-        // printf("%s\n", templates[0]);
-        // for (int i = 0; *(templates + i) != NULL; ++i) {
-        //     printf("%s\n", *(templates + i));
-        // }
         patterns = convert_to_regex_t(templates, flags->i);
-        // if (patterns[1] == NULL) {
-        //     printf("----------");
-        // }
         clean_mass(templates);
     }
     return patterns;

@@ -25,6 +25,7 @@ char** find_file(int argc, char *argv[], int e) {
         allowed = 0;
     }
     for (int i = 1; i < argc; ++i) {
+        its_argument = 0;
         file = fopen(argv[i], "r");
         if ((argv[i - 1][0] == '-') && ((argv[i - 1][strlen(argv[i - 1]) - 1] == 'e') || (argv[i - 1][strlen(argv[i - 1]) - 1] == 'f'))) {
             its_argument = 1;
@@ -37,27 +38,21 @@ char** find_file(int argc, char *argv[], int e) {
         if (argv[i][0] == '-') {
             its_argument = 1;
         }
-        // printf("%d %d", i, its_argument);
-        // if (!its_argument) {
-        //     printf("%d", file != NULL);
-        // }
-        // printf("%d %d %d\n", its_argument, file != NULL, allowed);
         if ((file != NULL) && !its_argument) {
             if (allowed) {
                 paths = append_path(paths, &pathSize, argv[i]);
             }
-        } else if ((file == NULL) && !its_argument) {
-            printf("grep: %s: No such file or directory\n", argv[i]);
+        } else if ((file == NULL) && !its_argument && allowed) {
+            fprintf(stderr, "grep: %s: No such file or directory\n", argv[i]);
         }
         if (!allowed && (argv[i][0] != '-')) {
             allowed = 1;
         }
-        // printf("%d\n", pathSize);
+        if (file != NULL) {
+            fclose(file);
+        }
     }
     paths = (char**)realloc(paths, sizeof(char*) * (pathSize + 1));
-    // for (int i = 0; *(paths + i) != NULL; ++i) {
-    //     printf("%s\n", *(paths + i));
-    // }
     return paths;
 }
 
