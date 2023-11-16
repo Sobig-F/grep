@@ -1,6 +1,7 @@
 #!/bin/bash
 
 COUNTER=0
+SUCCESS=0
 DIFF=""
 
 s21_command=(
@@ -17,33 +18,46 @@ flags=(
     "h"
     "o"
     "i"
-    "h"
     "s"
     "e"
 )
 tests=(
 "FLAGS Test test_files/test1.txt test_files/test2.txt"
+"FLAGS ae test_files/test1.txt test_files/test2.txt"
+"FLAGS of test_files/test1.txt test_files/test2.txt"
+"FLAGS data test_files/test1.txt test_files/test2.txt"
+"FLAGS Data test_files/test1.txt test_files/test2.txt"
+"FLAGS can test_files/test1.txt test_files/test2.txt"
+"FLAGS have test_files/test1.txt test_files/test2.txt"
 )
 manual=(
+"-ce l test_files/test1.txt test_files/test2.txt"
 "-e o -e test test_files/test1.txt test_files/test2.txt"
 "-e hello -f test_files/test3.txt test_files/test1.txt test_files/test2.txt"
 "-s test do_not_exist.txt"
 )
 run_test() {
-    param=$(echo "$@" | sed "s/FLAGS/$var/")
-    "${s21_command[@]}" $param > "${s21_command[@]}".log
-    "${sys_command[@]}" $param > "${sys_command[@]}".log
-    DIFF="$(diff -s "${s21_command[@]}".log "${sys_command[@]}".log)"
     let "COUNTER++"
-    if [ "$DIFF" != "Files "${s21_command[@]}".log and "${sys_command[@]}".log are identical" ]
+    param=$(echo "$@" | sed "s/FLAGS/$var/")
+    "${s21_command[@]}" $param >> s21_grep.log
+    "${sys_command[@]}" $param >> grep.log
+    DIFF="$(diff -s s21_grep.log grep.log)"
+    echo $COUNTER " ${s21_command[@]} $param" >> all_comm.log
+    if [ "$DIFF" != "Files s21_grep.log and grep.log are identical" ]
     then
+        echo $(diff -u s21_grep.log grep.log | grep -e '-')
+        echo "$COUNTER ${s21_command[@]} $param" >> s21_grep_fail.log
+        echo "$COUNTER ${sys_command[@]} $param" >> grep_fail.log
         echo "$COUNTER - Fail $param"
-    # else
+        exit
+    else
+        let "SUCCESS++"
         # echo "$COUNTER - Success $param"
+        rm -f grep.log s21_grep.log
     fi
-    rm -f "${s21_command[@]}".log "${sys_command[@]}".log
 }
 
+rm -f s21_grep.log grep.log s21_grep_fail.log grep_fail.log
 for var1 in "${flags[@]}"
 do
     for i in "${tests[@]}"
@@ -60,14 +74,11 @@ do
         do
             for var4 in "${flags[@]}"
             do
-                if [ $var1 != $var2 ]
-                then
-                    for i in "${tests[@]}"
-                    do
-                        var="-$var1$var2$var3$var4"
-                        run_test "$i"
-                    done
-                fi
+                for i in "${tests[@]}"
+                do
+                    var="-$var1$var2$var3$var4"
+                    run_test "$i"
+                done
             done
         done
     done
@@ -77,3 +88,5 @@ do
     var="-"
     run_test "$i"
 done
+echo "ALL - ${COUNTER}"
+echo "SUCCESS - ${SUCCESS}"

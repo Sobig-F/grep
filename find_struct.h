@@ -16,9 +16,9 @@ void clean_findStruct(struct findStruct *findStruct) {
     }
     if (findStruct->templates != NULL) {
         for (int i = 0; *(findStruct->templates + i) != NULL; ++i) {
-            free(*(findStruct->templates + i));
+            regfree(*(findStruct->templates + i));
         }
-        free(findStruct->templates);
+        regfree(findStruct->templates);
     }
     if (findStruct->files != NULL) {
         for (int i = 0; *(findStruct->files + i) != NULL; ++i) {

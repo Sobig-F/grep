@@ -8,77 +8,91 @@
 #include <string.h>
 #include "flags.h"
 #include "find_struct.h"
+#include "sort.h"
 
-char *get_new_str(regex_t *pattern, char *str) {
-    char *new_str = (char*)malloc(sizeof(char) * (int)strlen(str));
-    regmatch_t *pm = NULL;
-    int len = (int)strlen(str);
-    int size_new_str = 1;
-    new_str[0] = *str;
-    while (regexec(pattern, new_str, 0, pm, 0) && (size_new_str < len)) {
-        new_str[size_new_str] = str[size_new_str];
-        ++size_new_str;
+void print_cut_str(char *str, int start, int end) {
+    for (int i = start; i < end; ++i) {
+        printf("%c", str[i]);
     }
-    free(new_str);
-    new_str = (char*)malloc(sizeof(char) * (len - size_new_str + 1));
-    for (int i = size_new_str; i < len; ++i) {
-        new_str[i - size_new_str] = str[i];
-    }
-    return new_str;
+    printf("\n");
 }
 
-char* print_cut_str(char *str, regex_t *pattern) {
-    regmatch_t *pm = NULL;
-    int s_fin_str = 1, s_start_str = 1, i;
-    char *start_str = (char*)malloc(sizeof(char) * (int)strlen(str));
-    char *fin_str = (char*)malloc(sizeof(char) * (int)strlen(str));
-    start_str[0] = *str;
-    for (int i = 1; regexec(pattern, start_str, 0, pm, 0); ++i) {
-        ++s_start_str;
-        start_str[s_start_str - 1] = *(str + i);
+regmatch_t** append_pm(regmatch_t** all_pm, regmatch_t* pm, int *len, int offset) {
+    ++(*len);
+    if (all_pm == NULL) {
+        all_pm = (regmatch_t**)malloc(sizeof(regmatch_t*));
+    } else {
+        all_pm = (regmatch_t**)realloc(all_pm, sizeof(regmatch_t*) * *len);
     }
-    fin_str[0] = start_str[s_start_str - 1];
-    while (regexec(pattern, fin_str, 0, pm, 0)) {
-        ++s_fin_str;
-        i = 0;
-        for (int j = s_start_str - s_fin_str; j < s_start_str; ++j) {
-            fin_str[i] = start_str[j];
-            ++i;
+    all_pm[*len - 1] = (regmatch_t*)malloc(sizeof(regmatch_t));
+    all_pm[*len - 1]->rm_so = pm->rm_so + offset;
+    all_pm[*len - 1]->rm_eo = pm->rm_eo + offset;
+
+    return all_pm;
+}
+
+regmatch_t** check_templates(regex_t *template, char *str, int *len, regmatch_t **all_pm, int *temp_count) {
+    int offset = 0, count = 0;
+    regmatch_t *pm = NULL;
+    pm = (regmatch_t*)malloc(sizeof(regmatch_t));
+    while (offset < (int)strlen(str)) {
+        if (regexec(template, str + offset, 1, pm, 0) == 0) {
+            all_pm = append_pm(all_pm, pm, len, offset);
+            ++count;
+            offset += (int)pm->rm_eo;
+        } else {
+            offset = (int)strlen(str);
         }
     }
-    free(start_str);
-    return fin_str;
+    if (count > 0) {
+        ++(*temp_count);
+    }
+    if (pm != NULL) {
+        free(pm);
+    }
+    return all_pm;
 }
 
 int check_string(char *filename, char *str, regex_t **templates, struct flags *flags, int count_str) {
-    int detect;
-    regmatch_t *pm = NULL;
-    char *new_str = NULL, *cut_str = NULL;
-    for (int i = 0; (*(templates + i) != NULL); ++i) {
-        detect = !regexec(*(templates + i), str, 0, pm, 0);
-        if (flags->v) {
-            detect = !detect;
-        }
-        if (detect && !flags->h && !flags->c && !flags->l) {
+    int find_count = 0, temp_count = 0;
+    regmatch_t **all_pm = NULL;
+    for (int i = 0; *(templates + i) != NULL; ++i) {
+        all_pm = check_templates(*(templates + i), str, &find_count, all_pm, &temp_count);
+    }
+    free(all_pm);
+    if (find_count > 1) {
+        quick_sort(all_pm, find_count);
+    }
+    if (!flags->o) {
+        find_count = temp_count;
+    }
+    if (flags->v && (find_count > 0)) {
+        find_count = 0;
+    } else if (flags->v && (find_count == 0)) {
+        find_count = 1;
+    }
+
+    for (int i = 0; i < find_count; ++i) {
+        if (!flags->h && !flags->c && !flags->l) {
             printf("%s:", filename);
         }
-        if (detect && flags->n) {
+        if (flags->n) {
             printf("%d:", count_str);
         }
-        if (detect && flags->o) {
-            cut_str = print_cut_str(str, *(templates + i));
-            printf("%s\n", cut_str);
-            free(cut_str);
-        } else if (detect && !flags->c && !flags->l) {
+        if (flags->o && !flags->v) {
+            print_cut_str(str, (int)all_pm[i]->rm_so, (int)all_pm[i]->rm_eo);
+        } else if (!flags->c && !flags->l) {
             printf("%s\n", str);
         }
-        if (detect && ((int)strlen(str) > 0) && !flags->c && !flags->l && !flags->v && flags->o) {
-            new_str = get_new_str(*(templates + i), str);
-            check_string(filename, new_str, templates, flags, count_str);
-            free(new_str);
-        }
     }
-    return detect;
+    if (all_pm != NULL) {
+        for (int i = 0; all_pm[i] != NULL; ++i) {
+            free(*(all_pm + i));
+        }
+        free(all_pm);
+    }
+
+    return find_count;
 }
 
 void parsing_file(char *filename, FILE *file, regex_t **templates, struct flags *flags) {
@@ -109,7 +123,7 @@ void parsing_file(char *filename, FILE *file, regex_t **templates, struct flags 
     }
 }
 
-void find_patterns_in_file(struct findStruct *grepStruct) {
+void parsing_all_filepath(struct findStruct *grepStruct) {
     FILE *file;
     int count_files = 0;
     for (int i = 0; (count_files < 2) && (*(grepStruct->files + i) != NULL); ++i) {

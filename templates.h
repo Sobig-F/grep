@@ -8,8 +8,8 @@
 #include "restring.h"
 
 void clean_mass(char **arr) {
-    for (int i = 0; arr[i] != NULL; ++i) {
-        free(arr[i - 1]);
+    for (int i = 0; arr[i] != NULL; free(arr[i - 1])) {
+        ++i;
     }
     free(arr);
 }
