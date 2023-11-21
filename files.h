@@ -52,7 +52,9 @@ char** find_file(int argc, char *argv[], int e) {
             fclose(file);
         }
     }
-    paths = (char**)realloc(paths, sizeof(char*) * (pathSize + 1));
+    if (paths != NULL) {
+        paths = (char**)realloc(paths, sizeof(char*) * (pathSize + 1));
+    }
     return paths;
 }
 

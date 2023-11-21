@@ -15,7 +15,6 @@ void swap(regmatch_t *a, regmatch_t *b) {
 }
 
 void quick_sort(regmatch_t **a, int n) {
-    regmatch_t *pIndex = *a;
     if (n > 0) {
         for (int i = 0; i < n; ++i) {
             if ((*(a + i))->rm_so < (*a)->rm_so) {

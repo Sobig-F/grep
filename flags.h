@@ -9,11 +9,26 @@ struct flags {
     int i, v, c, l, n, h, s, o, f, e;
 };
 
-struct flags* find_flags(struct flags *flags, char *argv[], int *valid) {
-    int feflag;
+struct flags* find_flags(char *argv[], int *valid) {
+    int feflag, last_fefl;
+    last_fefl = 0;
+    struct flags *flags = NULL;
+    if (flags == NULL) {
+        flags = (struct flags*)malloc(sizeof(struct flags));
+    }
+    flags->i = 0;
+    flags->v = 0;
+    flags->c = 0;
+    flags->l = 0;
+    flags->n = 0;
+    flags->h = 0;
+    flags->s = 0;
+    flags->o = 0;
+    flags->f = 0;
+    flags->e = 0;
     for (int i = 1; *(argv + i) != NULL; ++i) {
         feflag = 0;
-        for (int j = 1; !feflag && (j < (int)strlen(argv[i])) && (argv[i][0] == '-'); ++j) {
+        for (int j = 1; !last_fefl && !feflag && (j < (int)strlen(argv[i])) && (argv[i][0] == '-'); ++j) {
             if (argv[i][j] == 'i') {
                 flags->i = 1;
             } else if (argv[i][j] == 'v') {
@@ -32,14 +47,22 @@ struct flags* find_flags(struct flags *flags, char *argv[], int *valid) {
                 flags->o = 1;
             }else if (argv[i][j] == 'f') {
                 feflag = 1;
+                last_fefl = 1;
                 flags->f = 1;
             }else if (argv[i][j] == 'e') {
                 feflag = 1;
+                last_fefl = 1;
                 flags->e = 1;
             } else if (!feflag) {
                 fprintf(stderr, "grep: invalid option -- %c\n", argv[i][j]);
                 *valid = 0;
             }
+            if (last_fefl && (j + 1 != (int)strlen(argv[i]))) {
+                last_fefl = 0;
+            }
+        }
+        if (!feflag && last_fefl) {
+            last_fefl = 0;
         }
     }
     if (flags != NULL) {
@@ -54,6 +77,9 @@ struct flags* find_flags(struct flags *flags, char *argv[], int *valid) {
         if (flags->v) {
             flags->o = 0;
         }
+        if (flags->f) {
+            flags->h = 1;
+        }
     }
     return flags;
 }
@@ -61,9 +87,8 @@ struct flags* find_flags(struct flags *flags, char *argv[], int *valid) {
 struct flags* flagging(char *argv[]) {
     struct flags *flags = NULL;
     int valid = 1;
-    flags = (struct flags*)malloc(sizeof(struct flags));
-    flags = find_flags(flags, argv, &valid);
-    if (!valid) {
+    flags = find_flags(argv, &valid);
+    if (!valid && (flags != NULL)) {
         free(flags);
         flags = NULL;
     }
