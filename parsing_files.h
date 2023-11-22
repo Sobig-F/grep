@@ -24,7 +24,7 @@ regmatch_t** append_pm(regmatch_t** all_pm, regmatch_t* pm, int *len, int offset
         // all_pm[*len - 1] = NULL;
     } else {
         all_pm = (regmatch_t**)realloc(all_pm, sizeof(regmatch_t*) * *len);
-        // all_pm[*len - 1] = NULL;
+        all_pm[*len - 1] = NULL;
     }
     // if (all_pm[*len - 1] == NULL) {
     all_pm[*len - 1] = (regmatch_t*)malloc(sizeof(regmatch_t));
@@ -42,7 +42,6 @@ regmatch_t** check_templates(regex_t *template, char *str, int *len, regmatch_t 
     regmatch_t *pm = NULL;
     pm = (regmatch_t*)malloc(sizeof(regmatch_t));
     while (offset < (int)strlen(str)) {
-        // printf("qqq");
         if (!regexec(template, str + offset, 1, pm, 0)) {
             all_pm = append_pm(all_pm, pm, len, offset);
             offset += (int)pm->rm_eo;
@@ -65,6 +64,7 @@ int check_string(char *filename, char *str, regex_t **templates, struct flags *f
     // free(all_pm);
     if (all_pm != NULL) {
         all_pm = (regmatch_t**)realloc(all_pm, sizeof(regmatch_t*) * (find_count + 1));
+        all_pm[find_count] = NULL;
     }
     if (!flags->o && find_count) {
         find_count = 1;
@@ -75,7 +75,6 @@ int check_string(char *filename, char *str, regex_t **templates, struct flags *f
     if (flags->v && (find_count > 0)) {
         find_count = 0;
     } else if (flags->v && (find_count == 0)) {
-        // printf("-----\n");
         find_count = 1;
     }
 
@@ -104,10 +103,8 @@ int check_string(char *filename, char *str, regex_t **templates, struct flags *f
 void parsing_file(char *filename, FILE *file, regex_t **templates, struct flags *flags, int *print_str) {
     char *str = NULL;
     str = get_string(file, 1);
-    // printf("%s", str);
     int count_str = 1, detect = 0, detect_count = 0;
     while ((str != NULL) && (!detect || !flags->l)) {
-        // printf("%s\n", str);
         detect = check_string(filename, str, templates, flags, count_str, print_str);
         if (detect) {
             detect_count += 1;
@@ -115,7 +112,6 @@ void parsing_file(char *filename, FILE *file, regex_t **templates, struct flags 
         free(str);
         str = NULL;
         str = get_string(file, 1);
-        // printf("%s", str);
         ++count_str;
     }
     if (flags->c && !flags->h) {
@@ -134,16 +130,6 @@ void parsing_file(char *filename, FILE *file, regex_t **templates, struct flags 
 
 void parsing_all_filepath(struct findStruct *grepStruct) {
     FILE *file = NULL;
-    // printf("IS OPEN");
-    // if (grepStruct->files == NULL) {
-    //     printf("files is NULL");
-    // }
-    // if (grepStruct->flags == NULL) {
-    //     printf("flags is NULL");
-    // }
-    // if (grepStruct->templates == NULL) {
-    //     printf("temp is NULL");
-    // }
     if ((grepStruct->files != NULL) && (grepStruct->templates != NULL) && (grepStruct->flags != NULL)) {
         for (int i = 0; *(grepStruct->files + i) != NULL; ++i) {
             file = fopen(*(grepStruct->files + i), "r");

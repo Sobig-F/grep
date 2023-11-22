@@ -54,6 +54,7 @@ char** find_file(int argc, char *argv[], int e) {
     }
     if (paths != NULL) {
         paths = (char**)realloc(paths, sizeof(char*) * (pathSize + 1));
+        paths[pathSize] = NULL;
     }
     return paths;
 }

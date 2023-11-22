@@ -18,10 +18,11 @@ void copy(char *first, char *second) {
     for (int i = 0; i < (int)strlen(second); ++i) {
         first[i] = second[i];
     }
+    first[(int)strlen(second)] = '\0';
 }
 
 regex_t** convert_to_regex_t(char **templates, int i_flag, int count) {
-    regex_t **patterns = NULL;    
+    regex_t **patterns = NULL;
     patterns = (regex_t**)malloc(sizeof(regex_t*) * (count + 1));
     patterns[count] = NULL;
     for (int i = 0; *(templates + i) != NULL; ++i) {
@@ -43,9 +44,8 @@ regex_t** convert_to_regex_t(char **templates, int i_flag, int count) {
 char** association_templates(FILE *file, char **templates, int *count, int *print_str) {
     char *str = NULL;
     str = get_string(file, 0);
-    // printf("%s\n", str);
     while (str != NULL) {
-        if (!*count) {
+        if (templates == NULL) {
             templates = (char**)malloc(sizeof(char*));
         }
         *count += 1;
@@ -54,7 +54,6 @@ char** association_templates(FILE *file, char **templates, int *count, int *prin
         copy(templates[*count - 1], str);
         free(str);
         str = get_string(file, 0);
-        // printf("%s\n", str);
         if ((templates[*count - 1][0] == '\n') && ((int)strlen(templates[*count - 1]) == 1)) {
             *print_str = 0;
         }
@@ -80,7 +79,7 @@ int check_exist_file(char **paths) {
 
 char **run_regulars_file(char **paths_regulars, char **templates, int *count, int *print_str) {
     int valid = 1;
-    FILE *file;
+    FILE *file = NULL;
     if (!check_exist_file(paths_regulars)) {
         valid = 0;
         if (templates != NULL) {
@@ -95,7 +94,7 @@ char **run_regulars_file(char **paths_regulars, char **templates, int *count, in
     return templates;
 }
 
-char** append_argument(char **array, int *count, char **argv, int indexj, int indexi) {
+char** append_argument(char **array, int *count, char **argv, int indexj, int indexi, int *error) {
     if (array == NULL) {
         array = (char**)malloc(sizeof(char*));
     }
@@ -110,14 +109,18 @@ char** append_argument(char **array, int *count, char **argv, int indexj, int in
         if ((argv[indexi + 1] != NULL) && ((int)strlen(argv[indexi + 1]) > 1)) {
             array = (char**)realloc(array, sizeof(char*) * *count);
             array[*count - 1] = NULL;
-            array[*count - 1] = (char*)malloc(sizeof(char) * (int)strlen(argv[indexi + 1]));
+            array[*count - 1] = (char*)malloc(sizeof(char) * ((int)strlen(argv[indexi + 1]) + 1));
             if (array[*count - 1] != NULL) {
                 copy(array[*count - 1], argv[indexi + 1]);
             } else {
                 *count = 0;
+                *error = 1;
+                clean_mass(array);
             }
         } else {
             *count = 0;
+            *error = 1;
+            clean_mass(array);
             fprintf(stderr, "grep: option requires an argument -- %c\n", argv[indexi][indexj]);
         }
     }
@@ -125,8 +128,8 @@ char** append_argument(char **array, int *count, char **argv, int indexj, int in
 }
 
 char **find_feflags_argument(char **argv, char **array, char flag, int *count) {
-    int found;
-    for (int i = 1; *(argv + i) != NULL; ++i) {
+    int found, error = 0;
+    for (int i = 1; (*(argv + i) != NULL) && !error; ++i) {
         found = 0;
         for (int j = 0; (j < (int)strlen(argv[i])) && (argv[i][0] == '-') && !found; ++j) {
             if (((flag == 'e') && (argv[i][j] == 'f')) || ((flag == 'f') && (argv[i][j] == 'e'))) {
@@ -134,12 +137,14 @@ char **find_feflags_argument(char **argv, char **array, char flag, int *count) {
             }
             if ((argv[i][j] == flag) && !found) {
                 found = 1;
-                array = append_argument(array, count, argv, j, i);
+                array = append_argument(array, count, argv, j, i, &error);
             }
         }
     }
-    array = (char**)realloc(array, sizeof(char*) * (*count + 1));
-    array[*count] = NULL;
+    if (array != NULL) {
+        array = (char**)realloc(array, sizeof(char*) * (*count + 1));
+        array[*count] = NULL;
+    }
     return array;
 }
 
@@ -177,9 +182,11 @@ regex_t** find_template(char **argv, struct flags *flags, int *print_str) {
     }
     if (flags->f) {
         paths_regulars = find_feflags_argument(argv, paths_regulars, 'f', &count_path);
-        templates = run_regulars_file(paths_regulars, templates, &count, print_str);
         if (paths_regulars != NULL) {
+            templates = run_regulars_file(paths_regulars, templates, &count, print_str);
             clean_mass(paths_regulars);
+        } else {
+            clean_mass(templates);
         }
         // for (int i = 0; *(templates + i) != NULL; ++i) {
         //     printf("%s\n", *(templates + i));
