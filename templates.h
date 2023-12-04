@@ -114,7 +114,7 @@ char **append_argument(char **array, int *count, char **argv, int indexj,
       array[*count - 1][i] = argv[indexi][indexj + i + 1];
     }
   } else {
-    if ((argv[indexi + 1] != NULL) && ((int)strlen(argv[indexi + 1]) > 1)) {
+    if (argv[indexi + 1] != NULL) {
       array = (char **)realloc(array, sizeof(char *) * *count);
       array[*count - 1] = NULL;
       array[*count - 1] =
