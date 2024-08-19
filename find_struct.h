@@ -41,6 +41,7 @@ struct findStruct *Create_find_struct(int argc, char *argv[],
       findStruct->files =
           find_file(argc, argv, findStruct->flags->e || findStruct->flags->f,
                     &(findStruct->count_files));
+          // printf("\n\n%d\n\n", findStruct->count_files);
     }
     if (findStruct->flags != NULL && argv != NULL) {
       findStruct->print_str = 1;

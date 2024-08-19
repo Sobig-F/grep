@@ -58,7 +58,7 @@ int check_string(char *filename, char *str, regex_t **templates,
                  int count_files) {
   int find_count = 0;
   regmatch_t **all_pm = NULL;
-  for (int i = 0; *(templates + i) != NULL; ++i) {
+  for (int i = 0; (*(templates + i) != NULL) && (!flags->o || all_pm == NULL); ++i) {
     all_pm = check_templates(*(templates + i), str, &find_count, all_pm);
   }
   if (all_pm != NULL) {
@@ -79,10 +79,11 @@ int check_string(char *filename, char *str, regex_t **templates,
   }
 
   for (int i = 0; (i < find_count) && (*print_str || !flags->o); ++i) {
-    if (!flags->h && !flags->c && !flags->l && count_files > 1) {
+    // printf("\n\n%d %d %d %d %d \n", !flags->h, !flags->c, !flags->l, count_files > 1, !flags->o || i == 0);
+    if (!flags->h && !flags->c && !flags->l && count_files > 1 && (!flags->o || i == 0)) {
       printf("%s:", filename);
     }
-    if (flags->n) {
+    if (flags->n && (!flags->o || i == 0)) {
       printf("%d:", count_str);
     }
     if (flags->o && !flags->v) {

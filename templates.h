@@ -104,21 +104,27 @@ char **append_argument(char **array, int *count, char **argv, int indexj,
                        int indexi, int *error) {
   if (array == NULL) {
     array = (char **)malloc(sizeof(char *));
+    *array = NULL;
   }
   ++(*count);
   if (indexj != (int)strlen(argv[indexi]) - 1) {
-    array = (char **)realloc(array, sizeof(char *) * *count);
+    array = (char **)realloc(array, sizeof(char *) * (*count + 1));
+    array[*count] = NULL;
+    array[*count - 1] = NULL;
     array[*count - 1] =
-        (char *)malloc(sizeof(char) * (strlen(argv[indexi]) - indexj - 1));
+        (char *)malloc(sizeof(char) * (strlen(argv[indexi]) - indexj));
     for (int i = 0; i < (int)strlen(argv[indexi]) - indexj; ++i) {
       array[*count - 1][i] = argv[indexi][indexj + i + 1];
     }
   } else {
-    if (argv[indexi + 1] != NULL) {
-      array = (char **)realloc(array, sizeof(char *) * *count);
+    if ((argv[indexi + 1] != NULL) && ((int)strlen(argv[indexi + 1]) > 0)) {
+      array = (char **)realloc(array, sizeof(char *) * (*count + 1));
+      array[*count] = NULL;
       array[*count - 1] = NULL;
-      array[*count - 1] =
-          (char *)malloc(sizeof(char) * ((int)strlen(argv[indexi + 1]) + 1));
+      if (array[*count - 1] == NULL) { 
+        array[*count - 1] =
+            (char *)malloc(sizeof(char) * ((int)strlen(argv[indexi + 1]) + 1));
+      }
       if (array[*count - 1] != NULL) {
         copy(array[*count - 1], argv[indexi + 1]);
       } else {
@@ -153,10 +159,10 @@ char **find_feflags_argument(char **argv, char **array, char flag, int *count) {
       }
     }
   }
-  if (array != NULL) {
-    array = (char **)realloc(array, sizeof(char *) * (*count + 1));
-    array[*count] = NULL;
-  }
+  // if (array != NULL) {
+    // array = (char **)realloc(array, sizeof(char *) * (*count + 1));
+    // array[*count] = NULL;
+  // }
   return array;
 }
 
@@ -187,8 +193,8 @@ regex_t **find_template(char **argv, struct flags *flags, int *print_str) {
   } else if (flags->e) {
     templates = find_feflags_argument(argv, templates, 'e', &count);
   }
-  if (flags->e && !count) {
-    free(templates);
+  if (flags->e && count == 0) {
+    // free(templates);
     templates = NULL;
     flags->f = 0;
   }

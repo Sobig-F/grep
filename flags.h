@@ -42,6 +42,7 @@ struct flags *find_flags(char *argv[], int *valid) {
       } else if (argv[i][j] == 'n') {
         flags->n = 1;
       } else if (argv[i][j] == 'h') {
+        // printf("\n\n\n%d %d\n\n\n", i, j);
         flags->h = 1;
       } else if (argv[i][j] == 's') {
         flags->s = 1;
@@ -79,9 +80,9 @@ struct flags *find_flags(char *argv[], int *valid) {
     if (flags->v) {
       flags->o = 0;
     }
-    if (flags->f) {
-      flags->h = 1;
-    }
+    // if (flags->f) {
+    //   flags->h = 1;
+    // }
   }
   return flags;
 }
